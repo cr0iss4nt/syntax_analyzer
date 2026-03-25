@@ -19,15 +19,24 @@
 <body>
     <div class="container mb-3">
         <div class="row align-items-center">
-            <div class="col-md-6 col-sm-6 d-flex">
+            <div class="col-md-4 col-sm-6 d-flex">
                 <a href="/" style="text-decoration:none">
                     <h1 style="white-space: nowrap; font-size: clamp(1.2rem, 3vw, 2.5rem);">
-                        <i class="bi bi-book"></i> Анализатор
+                        <i class="bi bi-file-earmark-text"></i> Анализатор
                     </h1>
                 </a>
             </div>
 
-            <div class="col-md-6 col-sm-6 d-flex justify-content-end">
+            <div class="col-md-4 col-sm-6">
+                <form method="post" action="/analysis/" enctype="multipart/form-data">
+                    <div class="input-group input-group-sm">
+                        <input type="file" class="form-control" id="file" name="file" accept=".txt,.docx,.pdf,.rtf">
+                        <button class="btn btn-primary" type="submit">Проанализировать</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-md-4 col-sm-6 d-flex justify-content-end">
                 <a href="/info/" class="btn btn-sm btn-info" style="width: 50px;">
                     <i class="bi bi-info"></i>
                 </a>
