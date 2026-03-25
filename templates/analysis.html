@@ -4,6 +4,63 @@
 
 {% block content %}
 <h2>Синтаксический анализ:</h2>
+<p><small>Завершён за {{ dt }} секунд.</small></p>
+
+<p>
+<button onclick="exportAnalysis()" class="btn btn-sm btn-primary">
+    <i class="bi bi-upload"></i> Экспорт
+</button>
+</p>
+
+<script>
+    const analysisData = {{ analysis | tojson }};
+
+    function exportAnalysis() {
+        fetch('/export/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(analysisData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Export failed');
+            }
+
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'analysis.xlsx';
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (match && match[1]) {
+                    filename = match[1].replace(/['"]/g, '');
+                }
+            }
+
+            return response.blob().then(blob => ({ blob, filename }));
+        })
+        .then(({ blob, filename }) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при экспорте синтаксического анализа');
+        });
+    }
+</script>
+
+<div style="overflow-x: auto; white-space: nowrap; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
+    {{ scheme | safe }}
+</div>
+
+<p></p>
 
 <div class="table-responsive">
     <table class="table table-striped" id="analysisTable">
@@ -13,17 +70,17 @@
                 <th>Часть речи</th>
                 <th>Зависимость</th>
                 <th>Родитель</th>
-                <th>Часть речи родителя</th>
+                <th>ЧР родителя</th>
             </tr>
         </thead>
         <tbody>
-            {% for i in analysis %}
+            {% for row in analysis %}
             <tr>
-                <td>{{ i[0] }}</td>
-                <td>{{ i[1] }}</td>
-                <td>{{ i[2] }}</td>
-                <td>{{ i[3] }}</td>
-                <td>{{ i[4] }}</td>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ row[3] }}</td>
+                <td>{{ row[4] }}</td>
             </tr>
             {% endfor %}
         </tbody>

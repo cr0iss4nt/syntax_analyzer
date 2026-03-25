@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+import time
 
 from fastapi import Request, APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse
@@ -29,8 +30,10 @@ async def analyze(request: Request, file: UploadFile = File(...)):
     finally:
         os.unlink(tmp_path)
 
-    analysis = modules.analyzer.analyze(text)
+    t1 = time.time()
+    analysis, svg = modules.analyzer.analyze(text)
+    dt = round(time.time()-t1, 3)
 
     return templates.TemplateResponse(
-        request=request, name="analysis.html", context={"analysis":analysis}
+        request=request, name="analysis.html", context={"analysis":analysis, "scheme":svg, "dt":dt}
     )
