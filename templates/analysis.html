@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Анализ{% endblock %}
+
+{% block content %}
+<h2>Синтаксический анализ:</h2>
+
+<div class="table-responsive">
+    <table class="table table-striped" id="analysisTable">
+        <thead>
+            <tr>
+                <th>Слово</th>
+                <th>Часть речи</th>
+                <th>Зависимость</th>
+                <th>Родитель</th>
+                <th>Часть речи родителя</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i in analysis %}
+            <tr>
+                <td>{{ i[0] }}</td>
+                <td>{{ i[1] }}</td>
+                <td>{{ i[2] }}</td>
+                <td>{{ i[3] }}</td>
+                <td>{{ i[4] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

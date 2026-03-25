@@ -1,0 +1,6 @@
+.venv
+.idea
+*.txt
+*.pdf
+*.rtf
+*.docx
