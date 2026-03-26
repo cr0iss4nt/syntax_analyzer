@@ -16,6 +16,6 @@ from spacy import displacy
 
 def analyze(text):
     doc = nlp(text)
-    svg = displacy.render(doc, style="dep", jupyter=False)
-    return [(token.text, token.pos_, token.dep_, token.head.text, token.head.pos_) for token in doc], svg
+    svgs = [displacy.render(i, style="dep", jupyter=False) for i in doc.sents]
+    return [(token.text, token.pos_, token.dep_, token.head.text, token.head.pos_) for token in doc], svgs
 
