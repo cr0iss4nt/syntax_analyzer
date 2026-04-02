@@ -31,9 +31,10 @@ async def analyze(request: Request, file: UploadFile = File(...)):
         os.unlink(tmp_path)
 
     t1 = time.time()
-    analysis, svgs = modules.analyzer.analyze(text)
+    analysis, svgs, entities = modules.analyzer.analyze(text)
     dt = round(time.time()-t1, 3)
 
     return templates.TemplateResponse(
-        request=request, name="analysis.html", context={"analysis":analysis, "schemes":svgs, "dt":dt}
+        request=request, name="analysis.html",
+        context={"analysis":analysis, "schemes":svgs, "dt":dt, "entities":entities}
     )

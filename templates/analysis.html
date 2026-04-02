@@ -3,7 +3,7 @@
 {% block title %}Анализ{% endblock %}
 
 {% block content %}
-<h2>Синтаксический анализ:</h2>
+<h2>Семантико-синтаксический анализ:</h2>
 <p><small>Завершён за {{ dt }} секунд.</small></p>
 
 <p>
@@ -14,20 +14,25 @@
 
 <script>
     const analysisData = {{ analysis | tojson }};
+    const entitiesData = {{ entities | tojson }};
 
     function exportAnalysis() {
+        const payload = {
+            analysis: analysisData,
+            entities: entitiesData
+        };
+
         fetch('/export/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(analysisData)
+            body: JSON.stringify(payload)
         })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Export failed');
             }
-
             const contentDisposition = response.headers.get('Content-Disposition');
             let filename = 'analysis.xlsx';
             if (contentDisposition) {
@@ -36,7 +41,6 @@
                     filename = match[1].replace(/['"]/g, '');
                 }
             }
-
             return response.blob().then(blob => ({ blob, filename }));
         })
         .then(({ blob, filename }) => {
@@ -51,43 +55,72 @@
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Ошибка при экспорте синтаксического анализа');
+            alert('Ошибка при экспорте семантико-синтаксического анализа');
         });
     }
 </script>
 
-{% for scheme in schemes%}
-
-<div style="overflow-x: auto; white-space: nowrap; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
-    {{ scheme | safe }}
-</div>
-
-{% endfor %}
-
-<p></p>
-
 <div class="table-responsive">
-    <table class="table table-striped" id="analysisTable">
+    <table class="table table-striped" id="semanticAnalysisTable">
         <thead>
             <tr>
-                <th>Слово</th>
-                <th>Часть речи</th>
-                <th>Зависимость</th>
-                <th>Родитель</th>
-                <th>ЧР родителя</th>
+                <th>Сущность</th>
+                <th>Тип</th>
             </tr>
         </thead>
         <tbody>
-            {% for row in analysis %}
+            {% for entity in entities %}
             <tr>
-                <td>{{ row[0] }}</td>
-                <td>{{ row[1] }}</td>
-                <td>{{ row[2] }}</td>
-                <td>{{ row[3] }}</td>
-                <td>{{ row[4] }}</td>
+                <td>{{ entity[0] }}</td>
+                <td>{{ entity[1] }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<p>
+    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#schemeCollapse" aria-expanded="true" aria-controls="schemeCollapse">
+    Показать/скрыть схемы зависимостей
+    </button>
+</p>
+<div class="collapse hide" id="schemeCollapse">
+{% for scheme in schemes %}
+    <div style="overflow-x: auto; white-space: nowrap; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+        {{ scheme | safe }}
+    </div>
+{% endfor %}
+</div>
+
+<p>
+    <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#tableCollapse" aria-expanded="true" aria-controls="schemeCollapse">
+    Показать/скрыть таблицу зависимостей
+    </button>
+</p>
+<div class="collapse hide" id="tableCollapse">
+    <div class="table-responsive">
+        <table class="table table-striped" id="syntacticAnalysisTable">
+            <thead>
+                <tr>
+                    <th>Слово</th>
+                    <th>Часть речи</th>
+                    <th>Зависимость</th>
+                    <th>Родитель</th>
+                    <th>ЧР родителя</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in analysis %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[2] }}</td>
+                    <td>{{ row[3] }}</td>
+                    <td>{{ row[4] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}
