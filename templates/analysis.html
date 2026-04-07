@@ -4,7 +4,7 @@
 
 {% block content %}
 <h2>Семантико-синтаксический анализ:</h2>
-<p><small>Завершён за {{ dt }} секунд.</small></p>
+<p><small>Синтаксический анализ завершён за {{ dt }} секунд.</small></p>
 
 <p>
 <button onclick="exportAnalysis()" class="btn btn-sm btn-primary">
@@ -15,6 +15,7 @@
 <script>
     const analysisData = {{ analysis | tojson }};
     const entitiesData = {{ entities | tojson }};
+    const sessionId = "{{ session_id }}";
 
     function exportAnalysis() {
         const payload = {
@@ -55,12 +56,27 @@
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Ошибка при экспорте семантико-синтаксического анализа');
+            alert('Ошибка при экспорте синтаксического анализа');
         });
     }
 </script>
 
-<div class="table-responsive">
+<div class="mt-4 mb-3">
+    <button id="runAiBtn" class="btn btn-success" onclick="runAiAnalysis()">
+        <i class="bi bi-stars"></i> Запустить семантический AI‑анализ
+    </button>
+    <div id="aiLoading" class="spinner-border text-primary ms-3" role="status" style="display: none;">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+</div>
+
+<div id="aiResultContainer" style="display: none;">
+    <hr>
+    <h3>Результаты семантического AI‑анализа</h3>
+    <div id="aiResultContent"></div>
+</div>
+
+<div class="table-responsive mt-4">
     <table class="table table-striped" id="semanticAnalysisTable">
         <thead>
             <tr>
@@ -81,20 +97,20 @@
 
 <p>
     <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#schemeCollapse" aria-expanded="true" aria-controls="schemeCollapse">
-    Показать/скрыть схемы зависимостей
+        Показать/скрыть схемы зависимостей
     </button>
 </p>
 <div class="collapse hide" id="schemeCollapse">
-{% for scheme in schemes %}
+    {% for scheme in schemes %}
     <div style="overflow-x: auto; white-space: nowrap; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
         {{ scheme | safe }}
     </div>
-{% endfor %}
+    {% endfor %}
 </div>
 
 <p>
     <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#tableCollapse" aria-expanded="true" aria-controls="schemeCollapse">
-    Показать/скрыть таблицу зависимостей
+        Показать/скрыть таблицу зависимостей
     </button>
 </p>
 <div class="collapse hide" id="tableCollapse">
@@ -123,4 +139,130 @@
         </table>
     </div>
 </div>
+
+<script>
+    async function runAiAnalysis() {
+        const btn = document.getElementById('runAiBtn');
+        const spinner = document.getElementById('aiLoading');
+        const container = document.getElementById('aiResultContainer');
+        const contentDiv = document.getElementById('aiResultContent');
+
+        btn.disabled = true;
+        spinner.style.display = 'inline-block';
+        container.style.display = 'none';
+
+        try {
+            const response = await fetch(`/analysis/ai/${sessionId}`);
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Unknown error');
+            }
+            const data = await response.json();
+            renderAiResult(data);
+            container.style.display = 'block';
+        } catch (error) {
+            alert('Ошибка при получении AI‑анализа: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    }
+
+    function renderAiResult(data) {
+        const html = `
+            <div class="card mb-3">
+                <div class="card-header">Общая тема</div>
+                <div class="card-body">${escapeHtml(data.общая_тема)}</div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">Макроструктура</div>
+                <div class="card-body">
+                    <p><strong>Количество блоков:</strong> ${data.макроструктура.количество_блоков}</p>
+                    <table class="table table-sm">
+                        <thead><tr><th>№</th><th>Содержание</th></tr></thead>
+                        <tbody>
+                            ${data.макроструктура.блоки.map(b => `<tr><td>${b.номер}</td><td>${escapeHtml(b.содержание)}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">Семантические домены</div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead><tr><th>Домен</th><th>Лексемы</th></tr></thead>
+                        <tbody>
+                            ${data.семантические_домены.map(d => `<tr><td>${escapeHtml(d.домен)}</td><td>${escapeHtml(d.лексемы.join(', '))}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">Семантические отношения</div>
+                <div class="card-body">
+                    <ul>
+                        <li><strong>Гипо-гиперонимия:</strong> ${data.семантические_отношения.гипо_гиперонимия.map(escapeHtml).join(', ') || '—'}</li>
+                        <li><strong>Синонимия:</strong> ${data.семантические_отношения.синонимия.map(escapeHtml).join(', ') || '—'}</li>
+                        <li><strong>Антонимия:</strong> ${data.семантические_отношения.антонимия.map(escapeHtml).join(', ') || '—'}</li>
+                        <li><strong>Каузальность:</strong> ${data.семантические_отношения.каузальность.map(escapeHtml).join(', ') || '—'}</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">Денотаты и коннотации</div>
+                <div class="card-body">
+                    <p><strong>Денотаты (факты):</strong></p>
+                    <ul>${data.денотаты.map(f => `<li>${escapeHtml(f)}</li>`).join('') || '<li>—</li>'}</ul>
+                    <p><strong>Коннотации:</strong></p>
+                    <table class="table table-sm">
+                        <thead><tr><th>Выражение</th><th>Оценка</th><th>Пояснение</th></tr></thead>
+                        <tbody>
+                            ${data.коннотации.map(c => `<tr><td>${escapeHtml(c.выражение)}</td><td>${escapeHtml(c.оценка)}</td><td>${escapeHtml(c.пояснение)}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">Имплицитные смыслы</div>
+                <div class="card-body">
+                    <p><strong>Пресуппозиции:</strong> ${data.имплицитные_смыслы.пресуппозиции.map(escapeHtml).join(', ') || '—'}</p>
+                    <p><strong>Подтекст:</strong> ${data.имплицитные_смыслы.подтекст.map(escapeHtml).join(', ') || '—'}</p>
+                    <p><strong>Аномалии/противоречия:</strong> ${data.имплицитные_смыслы.аномалии.map(escapeHtml).join(', ') || '—'}</p>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">Когезия и когерентность</div>
+                <div class="card-body">
+                    <p><strong>Связующие элементы:</strong> ${data.когезия_когерентность.связующие_элементы.map(escapeHtml).join(', ') || '—'}</p>
+                    <p><strong>Оценка связности:</strong> ${escapeHtml(data.когезия_когерентность.оценка_связности)}</p>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">Вывод</div>
+                <div class="card-body">
+                    <p><strong>Функция текста:</strong> ${escapeHtml(data.вывод.функция_текста)}</p>
+                    <p><strong>Семантическое ядро:</strong> ${escapeHtml(data.вывод.семантическое_ядро)}</p>
+                </div>
+            </div>
+        `;
+        document.getElementById('aiResultContent').innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+</script>
 {% endblock %}
