@@ -1,6 +1,8 @@
 .venv
 .idea
+node_modules
 *.txt
 *.pdf
 *.rtf
 *.docx
+*.json
