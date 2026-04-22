@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 import time
@@ -65,7 +66,10 @@ async def get_ai_analysis(session_id: str):
         raise HTTPException(status_code=404, detail="Session expired or not found")
     text = entry["text"]
     try:
+        t1 = time.time()
         ai_result = modules.analyzer.analyze_ai(text)
+        dt = time.time()-t1
+        print(f"SEMANTIC AI ANALYSIS ({os.getenv('OPENROUTER_MODEL')}) DONE IN {dt:.3f} SECONDS")
         return JSONResponse(content=ai_result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
